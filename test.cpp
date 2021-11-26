@@ -7,6 +7,14 @@ void foo(Subject<int>* Obs){
 
 int main(int argc, char const *argv[])
 {
+
+    // auto a = [](int x){return x+1;};
+    auto a = EXP(x, x+1);
+
+    printf("%d", a(1));
+
+    return 0;
+
     auto myBS = new BehaviorSubject<int>(0);
 
     int sub1 = myBS->subscribe([](int a){

@@ -1,10 +1,17 @@
-#ifndef OBSERVABLES_HEADER
-#define OBSERVABLES_HEADER
+#ifndef OBSERVABLES_HEADER_D9DA62
+#define OBSERVABLES_HEADER_D9DA62
 
 #include <functional>
 
+#define EXP(x, exp) [](auto x){return exp;}
+
+
 template<typename T>
 using Sub = std::function<void(T)>;
+
+template<typename T, typename R>
+using Operator = std::function<T(R)>;
+
 
 template<typename T>
 class Subject
@@ -23,7 +30,12 @@ class Subject
         int unsubscribe(int);
         void next(T);
 
-        // void printSubsMap();
+        /* W.I.P. */
+
+        Subject* map(Operator<T, T>);
+        Subject* filter(Operator<T, bool>);
+
+        /* ----- */
 };
 
 
@@ -76,6 +88,7 @@ int Subject<T>::subscribe(Sub<T> func)
         newSubs[i] = mSubs[i];
         newMap[i] = mIDsMap[i];
     }
+
     free(mSubs);
     free(mIDsMap);
 
@@ -138,7 +151,7 @@ void Subject<T>::next(T val){
 }
 
 template<typename T>
-BehaviorSubject<T>::BehaviorSubject(T val): Subject<T>()
+BehaviorSubject<T>::BehaviorSubject(T val)
 {
     mValue = val;
 }
