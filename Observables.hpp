@@ -7,14 +7,23 @@
 
 
 template<typename T>
-using Sub = std::function<void(T)>;
+using Procedure = std::function<void(T)>;
 
 template<typename T, typename R>
 using Operator = std::function<T(R)>;
 
+
+//Class template prototype for circular dependecies between Subject and Subscription
+
 template<typename T>
 class Subscription;
 
+
+/**
+ * @brief Collection that will emit its value to subscribed procedures instead of storing it.
+ * 
+ * @tparam T Type of the data supposed to be passed to the Subject
+ */
 template<typename T>
 class Subject
 {
@@ -28,7 +37,7 @@ class Subject
         Subject();
         ~Subject();
 
-        Subscription<T>* subscribe(Sub<T>);
+        Subscription<T>* subscribe(Procedure<T>);
         int unsubscribe(int);
         void next(T);
 
@@ -41,6 +50,11 @@ class Subject
 };
 
 
+/**
+ * @brief Subject wich stores its current value. Needs a default value.
+ * 
+ * @tparam T Type of the data supposed to be passed to the BehaviorSubject
+ */
 template<typename T>
 class BehaviorSubject : public Subject<T>
 {
@@ -49,14 +63,19 @@ class BehaviorSubject : public Subject<T>
 
     public:
         BehaviorSubject(T);
-        // ~BehaviorSubject();
 
-        Subscription<T>* subscribe(Sub<T>);
+        Subscription<T>* subscribe(Procedure<T>);
         T getValue(void);
         void next(T);
         
 };
 
+
+/**
+ * @brief Representation of a subscribed procedure.
+ * 
+ * @tparam T Type of the data supposed to be passed to its Subject
+ */
 template<typename T>
 class Subscription
 {
@@ -64,10 +83,10 @@ class Subscription
         int mID;
         Subject<T>* mParent;
 
-        Sub<T> mAction;
+        Procedure<T> mAction;
 
     public:
-        Subscription(int, Subject<T>*, Sub<T>);
+        Subscription(int, Subject<T>*, Procedure<T>);
         ~Subscription();
 
         void call(T);
@@ -95,21 +114,21 @@ Subject<T>::~Subject()
 }
 
 /**
- * @brief Function that subscribe a procedure to a Subject, which will be called on every change
+ * @brief Subscribes a procedure to the Subject.
  * 
  * @tparam T Type of the Subject
- * @param func Procedure to subscribe
- * @return int 0 if an error occured - the ID of the subscription otherwise
+ * @param proc Procedure to subscribe
+ * @return the address of the subscription (NULL if an error occured)
  */
 template<typename T>
-Subscription<T>* Subject<T>::subscribe(Sub<T> func)
+Subscription<T>* Subject<T>::subscribe(Procedure<T> proc)
 {
     int SubID = mNextSubID++;
     
     Subscription<T>** newSubs = (Subscription<T>**)malloc(sizeof(Subscription<T>*) * (mSubsAmt+1));
 
     if(!newSubs){
-        return 0;
+        return NULL;
     }
 
     for(int i = 0; i < mSubsAmt; i++){
@@ -118,18 +137,24 @@ Subscription<T>* Subject<T>::subscribe(Sub<T> func)
 
     free(mSubs);
 
-    auto Sub = new Subscription<T>(SubID, this, func);
+    auto Sub = new Subscription<T>(SubID, this, proc);
     
     newSubs[mSubsAmt] = Sub;
 
     mSubs = newSubs;
     mSubsAmt++;
 
-    
-
     return Sub;
 }
 
+
+/**
+ * @brief Delete a single subscription from the subject (You should use Subscription->unsubscribe() instead).
+ * 
+ * @tparam T Type of the Subject
+ * @param id The id of the subscription
+ * @return -1 if the id doesn't exist - 0 if the subscription list coulnd't be modified - 1 if it worked
+ */
 template<typename T>
 int Subject<T>::unsubscribe(int id)
 {
@@ -143,7 +168,7 @@ int Subject<T>::unsubscribe(int id)
         }
     }
 
-    if(index == -1) return 0;
+    if(index == -1) return -1;
 
 
     Subscription<T>** newSubs = (Subscription<T>**)malloc(sizeof(Subscription<T>*) * (mSubsAmt-1));
@@ -168,6 +193,13 @@ int Subject<T>::unsubscribe(int id)
     return 1;
 }
 
+
+/**
+ * @brief Emits a new value to the Subject
+ * 
+ * @tparam T Type of the Subject
+ * @param val Value to be emitted
+ */
 template<typename T>
 void Subject<T>::next(T val)
 {
@@ -187,24 +219,24 @@ BehaviorSubject<T>::BehaviorSubject(T val)
 }
 
 /**
- * @brief Function that call and subscribe a procedure to a BehaviorSubject, which will be called on every change
+ * @brief Calls then subscribes a procedure to a BehaviorSubject    
  * 
  * @tparam T Type of the BehaviorSubject
  * @param func Procedure to call then subscribe
- * @return int 0 if an error occured - the ID of the subscription otherwise
+ * @return the address of the subscription (NULL if an error occured)
  */
 template<typename T>
-Subscription<T>* BehaviorSubject<T>::subscribe(Sub<T> func)
+Subscription<T>* BehaviorSubject<T>::subscribe(Procedure<T> func)
 {
     func(mValue);
     return Subject<T>::subscribe(func);
 }
 
 /**
- * @brief Getter wich sends the actual value of the BehaviorSubject
+ * @brief Sends the current value of the BehaviorSubject
  * 
  * @tparam T Type of the BehaviorSubject
- * @return T Value of the BehaviorSubject
+ * @return Value of the BehaviorSubject
  */
 template<typename T>
 T BehaviorSubject<T>::getValue(void)
@@ -212,6 +244,13 @@ T BehaviorSubject<T>::getValue(void)
     return mValue;
 }
 
+
+/**
+ * @brief Save then emit a new value to the BehaviorSubject
+ * 
+ * @tparam T Type of the BehaviorSubject
+ * @param val Value to be emitted
+ */
 template<typename T>
 void BehaviorSubject<T>::next(T val)
 {
@@ -222,7 +261,7 @@ void BehaviorSubject<T>::next(T val)
 
 
 template<typename T>
-Subscription<T>::Subscription(int ID, Subject<T>* parent, Sub<T> action)
+Subscription<T>::Subscription(int ID, Subject<T>* parent, Procedure<T> action)
 {
     mID = ID;
     mParent = parent;
@@ -234,19 +273,37 @@ Subscription<T>::~Subscription()
 {
 }
 
-
+/**
+ * @brief Delete this subscription from its subject
+ * 
+ * @tparam T Type of its Subject
+ * @return 1 if it worked - 0 if the subscription list coulnd't be modified - -1 if the subscription isn't listed
+ */
 template<typename T>
 int Subscription<T>::unsubscribe()
 {
     return mParent->unsubscribe(mID);
 }
 
+
+/**
+ * @brief Calls the procedure associated to the Subscription
+ * 
+ * @tparam T Type of its Subject
+ * @param val Parameter to give to the procedure
+ */
 template<typename T>
 void Subscription<T>::call(T val)
 {
     mAction(val);
 }
 
+/**
+ * @brief Sends ID of the subscription
+ * 
+ * @tparam T Type of its Subject
+ * @return int ID 
+ */
 template<typename T>
 int Subscription<T>::id()
 {
