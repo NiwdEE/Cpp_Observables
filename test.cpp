@@ -141,7 +141,7 @@ void test4(){
 
     for (int i = 0; i < 128; i++)
     {
-        //MUST HAVE a value capture to keep the value of "i" at the moment of the subscribe
+        //MUST HAVE a value capture ([=]) to keep the value of "i" at the moment of the subscribe
         mySub.subscribe([=](char a){
             std::cout << (i%16==0 ? '\n' : a);
         });
@@ -157,16 +157,55 @@ void test4(){
 int main(int argc, char const *argv[])
 {
 
-    /* * /
-    // auto a = [](int x){return x+1;};
-    auto a = EXP(x, x+1);
+    /** /
 
-    printf("%d", a(1));
+    Operator<int, int> moo = [=](int x){
+        return x;
+    };
+
+    Operator<int, int> boo = [=](int x){
+        return x+1;
+    };
+
+    Operator<int, int> poo = [=](int x){
+        return boo(moo(x));
+    };
+
+    moo = poo;
+
+    std::cout << moo(0) << std::endl;
+
+    /**/
+
+    /* */
+    Operator<int, int> a = EXP(x, x+1);
+    Operator<int, int> b = EXP(y, y+5);
+
+    auto mySub = new Subject<int>();
+
+    auto clone = mySub->map(a);
+    clone->map(b)->subscribe([](int a){
+        std::cout << "nv: " << a << std::endl;
+    });
+
+    mySub->next(0);
 
     return 0;
     /* */
 
-    test4();
+    /** /
+
+    auto mySub = new Subject<int>();
+
+    mySub->subscribe([](int a){
+        std::cout << "nv: " << a << std::endl;
+    });
+
+    *mySub << 25 << 65;
+
+    /**/
+
+    // test4();
 
 
     return 0;

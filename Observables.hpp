@@ -29,12 +29,27 @@ class Subject
 {
     protected:
         Subscription<T>** mSubs;
-        int mNextSubID;
-        
         int mSubsAmt;
+
+        int mNextSubID;
+
+        /* W.I.P. */
+
+        Subject<T>** mClones;
+        int mClonesAmt;
+
+        bool mHasFilter;
+        Operator<T, bool> mFilter;
+
+        bool mHasMap;
+        Operator<T, T> mMap;
+        
+
+        /* ------ */
 
     public:
         Subject();
+        Subject(const Subject<T>&);
         ~Subject();
 
         Subscription<T>* subscribe(Procedure<T>);
@@ -42,12 +57,14 @@ class Subject
         void unsubscribeAll();
         void next(T);
 
-        /* W.I.P. * /
+        // Subject<T>& operator<<(Subject<T>&, const T&);
+
+        /* W.I.P. */
 
         Subject* map(Operator<T, T>);
         Subject* filter(Operator<T, bool>);
 
-        /* ----- */
+        /* ------ */
 };
 
 
@@ -102,6 +119,26 @@ Subject<T>::Subject()
     mSubs = NULL;
     mNextSubID = 1;
     mSubsAmt = 0;
+
+    mClones = NULL;
+    mClonesAmt = 0;
+
+    mHasFilter = false;
+    mHasMap = false;
+}
+
+template<typename T>
+Subject<T>::Subject(const Subject<T>& newOne)
+{
+    mSubs = newOne.mSubs;
+    mNextSubID = newOne.mNextSubID;
+    mSubsAmt = newOne.mSubsAmt;
+
+    mClones = newOne.mClones;
+    mClonesAmt = newOne.mClonesAmt;
+
+    mHasFilter = newOne.mHasFilter;
+    mHasMap = newOne.mHasMap;
 }
 
 template<typename T>
@@ -217,11 +254,75 @@ void Subject<T>::unsubscribeAll(void){
 template<typename T>
 void Subject<T>::next(T val)
 {
-    for(int i = 0; i < mSubsAmt; i++){
-        mSubs[i]->call(val);
+    int i;
+    if(mHasMap){
+        for(i = 0; i < mSubsAmt; i++){
+            mSubs[i]->call(mMap(val));
+        }
+    }else{
+        for(i = 0; i < mSubsAmt; i++){
+            mSubs[i]->call(val);
+        }
+    }
+
+    for(i = 0; i < mClonesAmt; i++){
+        mClones[i]->next(val);
     }
 }
 
+
+template<typename T>
+Subject<T>* Subject<T>::map(Operator<T, T> func){
+    auto clone = new Subject<T>();
+
+    clone->mHasMap = true;
+
+    if(this->mHasMap){
+        clone->mMap = [=](T x){
+            return func(this->mMap(x));
+        };
+    }else{
+        clone->mMap = func;
+    }
+
+
+    if(this->mHasFilter){
+        clone->mHasFilter = true;
+        clone->mFilter = this->mFilter;
+    }
+
+    Subject<T>** newClones = (Subject<T>**)malloc(sizeof(Subject<T>*) * (mClonesAmt+1));
+
+    if(!newClones){
+        return NULL;
+    }
+
+    for(int i = 0; i < mClonesAmt; i++){
+        newClones[i] = mClones[i];
+    }
+
+    free(mClones);
+    newClones[mClonesAmt] = clone;
+    mClones = newClones;
+
+    mClonesAmt++;
+
+    return clone;
+}
+
+
+/**
+ * @brief Shorter and prettier way to pass a value to a Subject
+ * 
+ * @tparam T Type of the Subject
+ * @param sub Subject (Doesn't work with pointers)
+ * @param val Value to pass
+ */
+template<typename T>
+Subject<T>& operator<<(Subject<T>& sub, const T& val){
+    sub.next(val);
+    return sub;
+}
 
 
 
