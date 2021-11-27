@@ -194,6 +194,9 @@ int Subject<T>::unsubscribe(int id)
     return 1;
 }
 
+/**
+ * @brief Unsubscribes every subscriptions
+ */
 template<typename T>
 void Subject<T>::unsubscribeAll(void){
     for(int i = 0; i < mSubsAmt; i++){
