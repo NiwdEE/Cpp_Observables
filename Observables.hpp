@@ -39,9 +39,10 @@ class Subject
 
         Subscription<T>* subscribe(Procedure<T>);
         int unsubscribe(int);
+        void unsubscribeAll();
         void next(T);
 
-        /* W.I.P. */
+        /* W.I.P. * /
 
         Subject* map(Operator<T, T>);
         Subject* filter(Operator<T, bool>);
@@ -193,6 +194,16 @@ int Subject<T>::unsubscribe(int id)
     return 1;
 }
 
+template<typename T>
+void Subject<T>::unsubscribeAll(void){
+    for(int i = 0; i < mSubsAmt; i++){
+        delete mSubs[i];
+    }
+
+    free(mSubs);
+    mSubsAmt = 0;
+    mNextSubID = 1;
+}
 
 /**
  * @brief Emits a new value to the Subject
