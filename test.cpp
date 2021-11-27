@@ -1,11 +1,6 @@
 #include <iostream>
 #include "Observables.hpp"
 
-void foo(Subject<int>* Obs){
-    Obs->next(456);
-}
-
-
 /* Testing BehaviorSubject call on subscribe and unsubcription 1 by 1
 
     Should print: 
@@ -178,22 +173,22 @@ int main(int argc, char const *argv[])
     /**/
 
     /* */
-    Operator<int, int> a = EXP(x, x+1);
-    Operator<int, int> b = EXP(y, y+5);
+
+    auto a = EXP(x, x+20);
+    auto b = EXP(x, x*3);
 
     auto mySub = new Subject<int>();
 
-    auto clone = mySub->map(a);
-    clone->map(b)->subscribe([](int a){
-        std::cout << "nv: " << a << std::endl;
+    mySub->map(a)->map(b)->subscribe([](int a){
+        std::cout << "New value: " << a << std::endl;
     });
 
-    mySub->next(0);
+    mySub->next(3);
 
     return 0;
     /* */
 
-    /** /
+    /**/
 
     auto mySub = new Subject<int>();
 
