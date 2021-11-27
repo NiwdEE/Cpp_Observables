@@ -12,13 +12,15 @@ using Sub = std::function<void(T)>;
 template<typename T, typename R>
 using Operator = std::function<T(R)>;
 
+template<typename T>
+class Subscription;
 
 template<typename T>
 class Subject
 {
     protected:
-        Sub<T>* mSubs;
-        int* mIDsMap;
+        Subscription<T>** mSubs;
+        int mNextSubID;
         
         int mSubsAmt;
 
@@ -26,7 +28,7 @@ class Subject
         Subject();
         ~Subject();
 
-        int subscribe(Sub<T>);
+        Subscription<T>* subscribe(Sub<T>);
         int unsubscribe(int);
         void next(T);
 
@@ -49,57 +51,83 @@ class BehaviorSubject : public Subject<T>
         BehaviorSubject(T);
         // ~BehaviorSubject();
 
-        int subscribe(Sub<T>);
+        Subscription<T>* subscribe(Sub<T>);
         T getValue(void);
         void next(T);
         
 };
 
+template<typename T>
+class Subscription
+{
+    private:
+        int mID;
+        Subject<T>* mParent;
+
+        Sub<T> mAction;
+
+    public:
+        Subscription(int, Subject<T>*, Sub<T>);
+        ~Subscription();
+
+        void call(T);
+        int unsubscribe();
+        int id();
+};
 
 
 template<typename T>
 Subject<T>::Subject()
 {
     mSubs = NULL;
-    mIDsMap = NULL;
+    mNextSubID = 1;
     mSubsAmt = 0;
 }
 
 template<typename T>
 Subject<T>::~Subject()
 {
+    for(int i = 0; i < mSubsAmt; i++){
+        delete mSubs[i];
+    }
+
     free(mSubs);
-    free(mIDsMap);
 }
 
+/**
+ * @brief Function that subscribe a procedure to a Subject, which will be called on every change
+ * 
+ * @tparam T Type of the Subject
+ * @param func Procedure to subscribe
+ * @return int 0 if an error occured - the ID of the subscription otherwise
+ */
 template<typename T>
-int Subject<T>::subscribe(Sub<T> func)
+Subscription<T>* Subject<T>::subscribe(Sub<T> func)
 {
-    int SubID = (mSubsAmt > 0) ? mIDsMap[mSubsAmt-1] + 1 : 1;
+    int SubID = mNextSubID++;
     
-    Sub<T>* newSubs = (Sub<T>*)malloc(sizeof(Sub<T>) * (mSubsAmt+1));
-    int* newMap = (int*)malloc(sizeof(int) * (mSubsAmt+1));
+    Subscription<T>** newSubs = (Subscription<T>**)malloc(sizeof(Subscription<T>*) * (mSubsAmt+1));
 
-    if(!newMap || !newSubs){
+    if(!newSubs){
         return 0;
     }
 
     for(int i = 0; i < mSubsAmt; i++){
         newSubs[i] = mSubs[i];
-        newMap[i] = mIDsMap[i];
     }
 
     free(mSubs);
-    free(mIDsMap);
 
-    newSubs[mSubsAmt] = func;
-    newMap[mSubsAmt] = SubID;
+    auto Sub = new Subscription<T>(SubID, this, func);
+    
+    newSubs[mSubsAmt] = Sub;
 
     mSubs = newSubs;
-    mIDsMap = newMap;
     mSubsAmt++;
 
-    return SubID;
+    
+
+    return Sub;
 }
 
 template<typename T>
@@ -109,7 +137,7 @@ int Subject<T>::unsubscribe(int id)
 
     int index = -1;
     for(i = 0; i < mSubsAmt; i++){
-        if(mIDsMap[i] == id){
+        if(mSubs[i]->id() == id){
             index = i;
             break;
         }
@@ -118,37 +146,39 @@ int Subject<T>::unsubscribe(int id)
     if(index == -1) return 0;
 
 
-    int* newMap = (int*)malloc(sizeof(int) * (mSubsAmt-1));
-    Sub<T>* newSubs = (Sub<T>*)malloc(sizeof(Sub<T>) * (mSubsAmt-1));
+    Subscription<T>** newSubs = (Subscription<T>**)malloc(sizeof(Subscription<T>*) * (mSubsAmt-1));
 
-    if(!newMap || !newSubs) return 0;
+    if(!newSubs) return 0;
 
     for(i = 0; i < index; i++){
         newSubs[i] = mSubs[i];
-        newMap[i] = mIDsMap[i];
     }
+
+    delete mSubs[index];
 
     for(i = index+1; i < mSubsAmt; i++){
         newSubs[i-1] = mSubs[i];
-        newMap[i-1] = mIDsMap[i];
     }
 
     free(mSubs);
-    free(mIDsMap);
 
     mSubs = newSubs;
-    mIDsMap = newMap;
     mSubsAmt--;
 
     return 1;
 }
 
 template<typename T>
-void Subject<T>::next(T val){
+void Subject<T>::next(T val)
+{
     for(int i = 0; i < mSubsAmt; i++){
-        mSubs[i](val);
+        mSubs[i]->call(val);
     }
 }
+
+
+
+
 
 template<typename T>
 BehaviorSubject<T>::BehaviorSubject(T val)
@@ -156,22 +186,72 @@ BehaviorSubject<T>::BehaviorSubject(T val)
     mValue = val;
 }
 
+/**
+ * @brief Function that call and subscribe a procedure to a BehaviorSubject, which will be called on every change
+ * 
+ * @tparam T Type of the BehaviorSubject
+ * @param func Procedure to call then subscribe
+ * @return int 0 if an error occured - the ID of the subscription otherwise
+ */
 template<typename T>
-int BehaviorSubject<T>::subscribe(Sub<T> func){
+Subscription<T>* BehaviorSubject<T>::subscribe(Sub<T> func)
+{
     func(mValue);
     return Subject<T>::subscribe(func);
 }
 
-
+/**
+ * @brief Getter wich sends the actual value of the BehaviorSubject
+ * 
+ * @tparam T Type of the BehaviorSubject
+ * @return T Value of the BehaviorSubject
+ */
 template<typename T>
-T BehaviorSubject<T>::getValue(void){
+T BehaviorSubject<T>::getValue(void)
+{
     return mValue;
 }
 
 template<typename T>
-void BehaviorSubject<T>::next(T val){
+void BehaviorSubject<T>::next(T val)
+{
     mValue = val;
     Subject<T>::next(val);
 }
+
+
+
+template<typename T>
+Subscription<T>::Subscription(int ID, Subject<T>* parent, Sub<T> action)
+{
+    mID = ID;
+    mParent = parent;
+    mAction = action;
+}
+
+template<typename T>
+Subscription<T>::~Subscription()
+{
+}
+
+
+template<typename T>
+int Subscription<T>::unsubscribe()
+{
+    return mParent->unsubscribe(mID);
+}
+
+template<typename T>
+void Subscription<T>::call(T val)
+{
+    mAction(val);
+}
+
+template<typename T>
+int Subscription<T>::id()
+{
+    return mID;
+}
+
 
 #endif

@@ -8,16 +8,18 @@ void foo(Subject<int>* Obs){
 int main(int argc, char const *argv[])
 {
 
+    /* * /
     // auto a = [](int x){return x+1;};
     auto a = EXP(x, x+1);
 
     printf("%d", a(1));
 
     return 0;
+    /* */
 
     auto myBS = new BehaviorSubject<int>(0);
 
-    int sub1 = myBS->subscribe([](int a){
+    auto sub1 = myBS->subscribe([](int a){
         std::cout << "New val: " << a << std::endl;
     });
 
@@ -28,22 +30,20 @@ int main(int argc, char const *argv[])
 
     myBS->next(2);
 
-    int sub2 = myBS->subscribe([](int a){
+    auto sub2 = myBS->subscribe([](int a){
         std::cout << "New val: " << a << std::endl;
     });
 
     myBS->next(3);
 
-    myBS->unsubscribe(sub1);
+    sub1->unsubscribe();
 
     myBS->next(4);
 
-    myBS->unsubscribe(sub2);
+    sub2->unsubscribe();
 
     myBS->next(5);
     
-
-    // delete myObs;
     delete myBS;
     return 0;
 }
