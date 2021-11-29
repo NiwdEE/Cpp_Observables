@@ -33,19 +33,15 @@ class Subject
 
         int mNextSubID;
 
-        /* W.I.P. */
 
         Subject<T>** mClones;
         int mClonesAmt;
 
         bool mHasFilter;
-        Operator<T, bool> mFilter;
+        Operator<bool, T> mFilter;
 
         bool mHasMap;
         Operator<T, T> mMap;
-        
-
-        /* ------ */
 
     public:
         Subject();
@@ -57,14 +53,8 @@ class Subject
         void unsubscribeAll();
         void next(T);
 
-        // Subject<T>& operator<<(Subject<T>&, const T&);
-
-        /* W.I.P. */
-
         Subject* map(Operator<T, T>);
-        Subject* filter(Operator<T, bool>);
-
-        /* ------ */
+        Subject* filter(Operator<bool, T>);
 };
 
 
@@ -253,15 +243,18 @@ void Subject<T>::unsubscribeAll(void){
  */
 template<typename T>
 void Subject<T>::next(T val)
-{
+{   
     int i;
-    if(mHasMap){
-        for(i = 0; i < mSubsAmt; i++){
-            mSubs[i]->call(mMap(val));
-        }
-    }else{
-        for(i = 0; i < mSubsAmt; i++){
-            mSubs[i]->call(val);
+
+    if(!mHasFilter || mFilter(val)){
+        if(mHasMap){
+            for(i = 0; i < mSubsAmt; i++){
+                mSubs[i]->call(mMap(val));
+            }
+        }else{
+            for(i = 0; i < mSubsAmt; i++){
+                mSubs[i]->call(val);
+            }
         }
     }
 
@@ -309,6 +302,46 @@ Subject<T>* Subject<T>::map(Operator<T, T> func){
 
     return clone;
 }
+
+template<typename T>
+Subject<T>* Subject<T>::filter(Operator<bool, T> func){
+    auto clone = new Subject<T>();
+
+    clone->mHasFilter = true;
+
+    if(this->mHasFilter){
+        clone->mFilter = [=](T x){
+            return func(x) && this->mFilter(x);
+        };
+    }else{
+        clone->mFilter = func;
+    }
+
+
+    if(this->mHasMap){
+        clone->mHasMap = true;
+        clone->mMap = this->mMap;
+    }
+
+    Subject<T>** newClones = (Subject<T>**)malloc(sizeof(Subject<T>*) * (mClonesAmt+1));
+
+    if(!newClones){
+        return NULL;
+    }
+
+    for(int i = 0; i < mClonesAmt; i++){
+        newClones[i] = mClones[i];
+    }
+
+    free(mClones);
+    newClones[mClonesAmt] = clone;
+    mClones = newClones;
+
+    mClonesAmt++;
+
+    return clone;
+}
+
 
 
 /**

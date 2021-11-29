@@ -149,59 +149,65 @@ void test4(){
     mySub.next('o');
 }
 
+
+/* Testing maps, filters and streams
+
+    Should print:
+Input value: 0
+Output value: -282
+(If u didn't know, 0 is even)
+Input value: 1
+Output value: 69
+Input value: 2
+Output value: 420
+(If u didn't know, 702 is even)
+Input value: 3
+Output value: 771
+Input value: 4
+Output value: 1122
+(If u didn't know, 1404 is even)
+Input value: 5
+Output value: 1473
+
+*/
+void test5(){
+    auto mySub = new Subject<int>();
+
+    auto a = EXP(x, x*351);
+    auto b = EXP(x, x-282);
+
+    auto myMappedSub = mySub->map(a);
+
+    myMappedSub->map(b)->subscribe([](int a){
+        std::cout << "Output value: " << a << std::endl;
+    });
+
+
+    //Even if we subscribe after, the original Subject's subscriptions will be called first
+    mySub->subscribe([](int a){
+        std::cout << "Input value: " << a << std::endl;
+    });
+
+    //Same level of line 181 but subscribed after, so will be called after
+    myMappedSub->filter(EXP(x, x%2==0))->subscribe([](int a){
+        std::cout << "(If u didn't know, " << a << " is even)" << std::endl;
+    });
+
+    *mySub << 0 << 1 << 2 << 3 << 4 << 5;
+
+    
+}
+
 int main(int argc, char const *argv[])
 {
+    void (* tests [])() = {test1, test2, test3, test4, test5};
 
-    /** /
-
-    Operator<int, int> moo = [=](int x){
-        return x;
-    };
-
-    Operator<int, int> boo = [=](int x){
-        return x+1;
-    };
-
-    Operator<int, int> poo = [=](int x){
-        return boo(moo(x));
-    };
-
-    moo = poo;
-
-    std::cout << moo(0) << std::endl;
-
-    /**/
-
-    /* */
-
-    auto a = EXP(x, x+20);
-    auto b = EXP(x, x*3);
-
-    auto mySub = new Subject<int>();
-
-    mySub->map(a)->map(b)->subscribe([](int a){
-        std::cout << "New value: " << a << std::endl;
-    });
-
-    mySub->next(3);
-
-    return 0;
-    /* */
-
-    /**/
-
-    auto mySub = new Subject<int>();
-
-    mySub->subscribe([](int a){
-        std::cout << "nv: " << a << std::endl;
-    });
-
-    *mySub << 25 << 65;
-
-    /**/
-
-    // test4();
-
+    int n = 0;
+    std::cout << "which test ?"<< std::endl;
+    scanf("%d", &n);
+    if(n){
+        tests[n-1]();
+    }
 
     return 0;
 }
