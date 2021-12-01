@@ -89,7 +89,7 @@ void test3(){
     myReaderSub->subscribe([ ](int a){
         std::cout << "I think i is equal to " << i << std::endl;
     });
-    /*                          */
+    /*          -----           */
 
     //Value capture ([=]), the value won't be updated if "i" changes 
     myReaderSub->subscribe([=](int a){
@@ -176,9 +176,9 @@ void test5(){
     auto a = EXP(x, x*351);
     auto b = EXP(x, x-282);
 
-    auto myMappedSub = mySub->map(a);
+    auto myMappedSub = mySub->pipe(map<int>(a));
 
-    myMappedSub->map(b)->subscribe([](int a){
+    myMappedSub->pipe(map<int>(b))->subscribe([](int a){
         std::cout << "Output value: " << a << std::endl;
     });
 
@@ -189,7 +189,7 @@ void test5(){
     });
 
     //Same level of line 181 but subscribed after, so will be called after
-    myMappedSub->filter(EXP(x, x%2==0))->subscribe([](int a){
+    myMappedSub->pipe(filter<int>(EXP(x, x%2==0)))->subscribe([](int a){
         std::cout << "(If u didn't know, " << a << " is even)" << std::endl;
     });
 

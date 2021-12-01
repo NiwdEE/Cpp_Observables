@@ -37,11 +37,10 @@ class Subject
         Subject<T>** mClones;
         int mClonesAmt;
 
-        bool mHasFilter;
-        Operator<bool, T> mFilter;
+        bool mPiped;
+        Operator<T*, T*> mPipe;
 
-        bool mHasMap;
-        Operator<T, T> mMap;
+        Subject* clone();
 
     public:
         Subject();
@@ -53,10 +52,80 @@ class Subject
         void unsubscribeAll();
         void next(T);
 
-        Subject* map(Operator<T, T>);
-        Subject* filter(Operator<bool, T>);
+        Subject* pipe(Operator<T*, T*>);
+        Subject* pipe(Procedure<T*>);
 };
 
+template<typename T>
+Procedure<T*> map(Operator<T, T> exp)
+{
+    return [=](T* val){
+        *val = exp(*val);
+    };
+}
+
+template<typename T>
+Operator<T*, T*> filter(Operator<T, T> exp)
+{
+    return [=](T* val){
+        if(!exp(*val)) return (T*)NULL;
+        return val;
+    };
+}
+
+template<typename T>
+Subject<T>* Subject<T>::clone(void)
+{
+    auto clone = new Subject<T>();
+
+    Subject<T>** newClones = (Subject<T>**)malloc(sizeof(Subject<T>*) * (mClonesAmt+1));
+
+    if(!newClones){
+        return NULL;
+    }
+
+    for(int i = 0; i < mClonesAmt; i++){
+        newClones[i] = mClones[i];
+    }
+
+    free(mClones);
+    newClones[mClonesAmt] = clone;
+    mClones = newClones;
+
+    mClonesAmt++;
+
+    return clone;
+}
+
+template<typename T>
+Subject<T>* Subject<T>::pipe(Procedure<T*> func)
+{
+    auto clone = this->clone();
+
+    clone->mPipe = [=](T* val){
+        auto a = this->mPipe(val); 
+        func(val);
+        return a;
+    };
+
+    clone->mPiped = true;
+
+    return clone;
+}
+
+template<typename T>
+Subject<T>* Subject<T>::pipe(Operator<T*, T*> func)
+{    
+    auto clone = this->clone();
+
+    clone->mPipe = [=](T* val){
+        return func(this->mPipe(val));
+    };
+
+    clone->mPiped = true;
+
+    return clone;
+}
 
 /**
  * @brief Subject wich stores its current value. Needs a default value.
@@ -102,7 +171,6 @@ class Subscription
         int id();
 };
 
-
 template<typename T>
 Subject<T>::Subject()
 {
@@ -113,8 +181,10 @@ Subject<T>::Subject()
     mClones = NULL;
     mClonesAmt = 0;
 
-    mHasFilter = false;
-    mHasMap = false;
+    mPiped = false;
+    mPipe = [](T* a){
+        return a;
+    };
 }
 
 template<typename T>
@@ -127,9 +197,10 @@ Subject<T>::Subject(const Subject<T>& newOne)
     mClones = newOne.mClones;
     mClonesAmt = newOne.mClonesAmt;
 
-    mHasFilter = newOne.mHasFilter;
-    mHasMap = newOne.mHasMap;
+    mPiped = newOne.mPiped;
+    mPipe = newOne.mPipe;
 }
+
 
 template<typename T>
 Subject<T>::~Subject()
@@ -245,7 +316,8 @@ template<typename T>
 void Subject<T>::next(T val)
 {   
     int i;
-
+    
+    /*
     if(!mHasFilter || mFilter(val)){
         if(mHasMap){
             for(i = 0; i < mSubsAmt; i++){
@@ -257,91 +329,30 @@ void Subject<T>::next(T val)
             }
         }
     }
+    */
+
+   if(mPiped){
+        T* pipedPtr = (T*)malloc(sizeof(T));
+        *pipedPtr = val;
+
+        T* pipedVal = mPipe(pipedPtr);
+        if(pipedVal){
+            for(i = 0; i < mSubsAmt; i++){
+                mSubs[i]->call(*pipedVal);
+            }
+        }
+
+        free(pipedPtr);
+    }else{
+        for(i = 0; i < mSubsAmt; i++){
+            mSubs[i]->call(val);
+        }
+    }
 
     for(i = 0; i < mClonesAmt; i++){
         mClones[i]->next(val);
     }
 }
-
-
-template<typename T>
-Subject<T>* Subject<T>::map(Operator<T, T> func){
-    auto clone = new Subject<T>();
-
-    clone->mHasMap = true;
-
-    if(this->mHasMap){
-        clone->mMap = [=](T x){
-            return func(this->mMap(x));
-        };
-    }else{
-        clone->mMap = func;
-    }
-
-
-    if(this->mHasFilter){
-        clone->mHasFilter = true;
-        clone->mFilter = this->mFilter;
-    }
-
-    Subject<T>** newClones = (Subject<T>**)malloc(sizeof(Subject<T>*) * (mClonesAmt+1));
-
-    if(!newClones){
-        return NULL;
-    }
-
-    for(int i = 0; i < mClonesAmt; i++){
-        newClones[i] = mClones[i];
-    }
-
-    free(mClones);
-    newClones[mClonesAmt] = clone;
-    mClones = newClones;
-
-    mClonesAmt++;
-
-    return clone;
-}
-
-template<typename T>
-Subject<T>* Subject<T>::filter(Operator<bool, T> func){
-    auto clone = new Subject<T>();
-
-    clone->mHasFilter = true;
-
-    if(this->mHasFilter){
-        clone->mFilter = [=](T x){
-            return func(x) && this->mFilter(x);
-        };
-    }else{
-        clone->mFilter = func;
-    }
-
-
-    if(this->mHasMap){
-        clone->mHasMap = true;
-        clone->mMap = this->mMap;
-    }
-
-    Subject<T>** newClones = (Subject<T>**)malloc(sizeof(Subject<T>*) * (mClonesAmt+1));
-
-    if(!newClones){
-        return NULL;
-    }
-
-    for(int i = 0; i < mClonesAmt; i++){
-        newClones[i] = mClones[i];
-    }
-
-    free(mClones);
-    newClones[mClonesAmt] = clone;
-    mClones = newClones;
-
-    mClonesAmt++;
-
-    return clone;
-}
-
 
 
 /**
