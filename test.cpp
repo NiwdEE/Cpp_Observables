@@ -193,9 +193,7 @@ void test5(){
         std::cout << "(If u didn't know, " << a << " is even)" << std::endl;
     });
 
-    *mySub << 0 << 1 << 2 << 3 << 4 << 5;
-
-    
+    *mySub << 0 << 1 << 2 << 3 << 4 << 5;    
 }
 
 int main(int argc, char const *argv[])

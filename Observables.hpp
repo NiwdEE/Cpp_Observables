@@ -226,7 +226,8 @@ int Subject<T>::unsubscribe(int id)
  * @brief Unsubscribes every subscriptions
  */
 template<typename T>
-void Subject<T>::unsubscribeAll(void){
+void Subject<T>::unsubscribeAll()
+{
     for(int i = 0; i < mSubsAmt; i++){
         delete mSubs[i];
     }
@@ -280,7 +281,8 @@ void Subject<T>::next(T val)
  * @param val Value to pass
  */
 template<typename T>
-Subject<T>& operator<<(Subject<T>& sub, const T& val){
+Subject<T>& operator<<(Subject<T>& sub, const T& val)
+{
     sub.next(val);
     return sub;
 }
