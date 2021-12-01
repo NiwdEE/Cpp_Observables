@@ -56,76 +56,6 @@ class Subject
         Subject* pipe(Procedure<T*>);
 };
 
-template<typename T>
-Procedure<T*> map(Operator<T, T> exp)
-{
-    return [=](T* val){
-        *val = exp(*val);
-    };
-}
-
-template<typename T>
-Operator<T*, T*> filter(Operator<T, T> exp)
-{
-    return [=](T* val){
-        if(!exp(*val)) return (T*)NULL;
-        return val;
-    };
-}
-
-template<typename T>
-Subject<T>* Subject<T>::clone(void)
-{
-    auto clone = new Subject<T>();
-
-    Subject<T>** newClones = (Subject<T>**)malloc(sizeof(Subject<T>*) * (mClonesAmt+1));
-
-    if(!newClones){
-        return NULL;
-    }
-
-    for(int i = 0; i < mClonesAmt; i++){
-        newClones[i] = mClones[i];
-    }
-
-    free(mClones);
-    newClones[mClonesAmt] = clone;
-    mClones = newClones;
-
-    mClonesAmt++;
-
-    return clone;
-}
-
-template<typename T>
-Subject<T>* Subject<T>::pipe(Procedure<T*> func)
-{
-    auto clone = this->clone();
-
-    clone->mPipe = [=](T* val){
-        auto a = this->mPipe(val); 
-        func(val);
-        return a;
-    };
-
-    clone->mPiped = true;
-
-    return clone;
-}
-
-template<typename T>
-Subject<T>* Subject<T>::pipe(Operator<T*, T*> func)
-{    
-    auto clone = this->clone();
-
-    clone->mPipe = [=](T* val){
-        return func(this->mPipe(val));
-    };
-
-    clone->mPiped = true;
-
-    return clone;
-}
 
 /**
  * @brief Subject wich stores its current value. Needs a default value.
@@ -316,22 +246,8 @@ template<typename T>
 void Subject<T>::next(T val)
 {   
     int i;
-    
-    /*
-    if(!mHasFilter || mFilter(val)){
-        if(mHasMap){
-            for(i = 0; i < mSubsAmt; i++){
-                mSubs[i]->call(mMap(val));
-            }
-        }else{
-            for(i = 0; i < mSubsAmt; i++){
-                mSubs[i]->call(val);
-            }
-        }
-    }
-    */
 
-   if(mPiped){
+    if(mPiped){
         T* pipedPtr = (T*)malloc(sizeof(T));
         *pipedPtr = val;
 
@@ -355,6 +271,7 @@ void Subject<T>::next(T val)
 }
 
 
+
 /**
  * @brief Shorter and prettier way to pass a value to a Subject
  * 
@@ -368,7 +285,112 @@ Subject<T>& operator<<(Subject<T>& sub, const T& val){
     return sub;
 }
 
+/**
+ * @brief /!\ Made to be used inside of Subject->pipe() /!\
+ * 
+ * Transforms data using the given function
+ * 
+ * @tparam T Data type of input/output
+ * @param func The transformation function 
+ */
+template<typename T>
+Procedure<T*> map(Operator<T, T> func)
+{
+    return [=](T* val){
+        *val = func(*val);
+    };
+}
 
+/**
+ * @brief /!\ Made to be used inside of Subject->pipe() /!\
+ * 
+ * Filter data using the given expression
+ * 
+ * @tparam T Data type of input
+ * @param exp The condition as expression
+ */
+template<typename T>
+Operator<T*, T*> filter(Operator<T, T> exp)
+{
+    return [=](T* val){
+        if(!exp(*val)) return (T*)NULL;
+        return val;
+    };
+}
+
+/**
+ * @brief Create a clone Subject, that will be called with same values than his parent
+ *
+ * @tparam T Data type of Subject
+ * @return Subject<T>* Address of the clone
+ */
+template<typename T>
+Subject<T>* Subject<T>::clone(void)
+{
+    auto clone = new Subject<T>();
+
+    Subject<T>** newClones = (Subject<T>**)malloc(sizeof(Subject<T>*) * (mClonesAmt+1));
+
+    if(!newClones){
+        return NULL;
+    }
+
+    for(int i = 0; i < mClonesAmt; i++){
+        newClones[i] = mClones[i];
+    }
+
+    free(mClones);
+    newClones[mClonesAmt] = clone;
+    mClones = newClones;
+
+    mClonesAmt++;
+
+    return clone;
+}
+
+/**
+ * @brief Transform data using a procedure that modifies value of a given pointer 
+ * 
+ * @tparam T 
+ * @param func The function (better use map() than lambdas)
+ * @return Subject<T>* Address of the piped Subject
+ */
+template<typename T>
+Subject<T>* Subject<T>::pipe(Procedure<T*> func)
+{
+    auto clone = this->clone();
+
+    clone->mPipe = [=](T* val){
+        auto a = this->mPipe(val); 
+        func(val);
+        return a;
+    };
+
+    clone->mPiped = true;
+
+    return clone;
+}
+
+/**
+ * @brief Transform data using a procedure that modifies value of a given pointer 
+ * 
+ * @tparam T 
+ * @param func The function (better use map() than lambdas)
+ * @return Subject<T>* Address of the piped Subject
+ */
+template<typename T>
+Subject<T>* Subject<T>::pipe(Operator<T*, T*> func)
+{    
+    auto clone = this->clone();
+
+    clone->mPipe = [=](T* val){
+        return func(this->mPipe(val));
+    };
+
+    clone->mPiped = true;
+
+    return clone;
+}
 
 
 template<typename T>

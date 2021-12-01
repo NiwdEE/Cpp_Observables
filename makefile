@@ -1,2 +1,2 @@
-main: test.cpp
+prog: test.cpp
 	g++ test.cpp -o main
