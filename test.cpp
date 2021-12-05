@@ -196,14 +196,36 @@ void test5(){
     *mySub << 0 << 1 << 2 << 3 << 4 << 5;    
 }
 
+/* Testing maps and testing on BehaviorSubject
+    Should print:
+0 is even
+2 is even
+4 is even
+6 is even
+8 is even
+10 is even
+*/
+void test6(){
+    auto myBS = new BehaviorSubject<int>(0);
+
+    myBS->pipe(filter<int>(EXP(x, x%2==0)))->subscribe([](int a){
+        std::cout << a << " is even" << std::endl;
+    });
+
+    for(int i = 0; i <= 10; i++){
+        *myBS << i;
+    }
+
+}
+
 int main(int argc, char const *argv[])
 {
-    void (* tests [])() = {test1, test2, test3, test4, test5};
+    void (* tests [])() = {test1, test2, test3, test4, test5, test6};
 
     int n = 0;
     std::cout << "which test ?"<< std::endl;
     scanf("%d", &n);
-    if(n){
+    if(n && n < 7){
         tests[n-1]();
     }
 
