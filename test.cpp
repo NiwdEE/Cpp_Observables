@@ -1,5 +1,9 @@
 #include <iostream>
-#include "Observables.hpp"
+// #include "Observables.hpp"
+#include "src/subject.cpp"
+// #include "src/subscription.hpp"
+#include "src/behaviorSubject.cpp"
+
 
 /* Testing BehaviorSubject call on subscribe and unsubcription 1 by 1
 
@@ -89,7 +93,7 @@ void test3(){
     myReaderSub->subscribe([ ](int a){
         std::cout << "I think i is equal to " << i << std::endl;
     });
-    /*          -----           */
+    /*                           */
 
     //Value capture ([=]), the value won't be updated if "i" changes 
     myReaderSub->subscribe([=](int a){

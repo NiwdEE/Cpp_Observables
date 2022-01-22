@@ -1,22 +1,8 @@
-#ifndef OBSERVABLES_HEADER_D9DA62
-#define OBSERVABLES_HEADER_D9DA62
+#ifndef SUBJECT_HEADER_D9DA62
+#define SUBJECT_HEADER_D9DA62
 
-#include <functional>
-
-#define EXP(x, exp) [](auto x){return exp;}
-
-
-template<typename T>
-using Procedure = std::function<void(T)>;
-
-template<typename T, typename R>
-using Operator = std::function<T(R)>;
-
-
-//Class template prototype for circular dependecies between Subject and Subscription
-
-template<typename T>
-class Subscription;
+#include "common.hpp"
+#include "subscription.cpp"
 
 
 /**
@@ -55,53 +41,6 @@ class Subject
         Subject<T>* pipe(Operator<T*, T*>);
         Subject<T>* pipe(Procedure<T*>);
 
-};
-
-
-/**
- * @brief Subject wich stores its current value. Needs a default value.
- * 
- * @tparam T Type of the data supposed to be passed to the BehaviorSubject
- */
-template<typename T>
-class BehaviorSubject : public Subject<T>
-{
-    private:
-        T mValue;
-
-    public:
-        BehaviorSubject(T);
-
-        Subscription<T>* subscribe(Procedure<T>);
-        T getValue(void);
-        void next(T);
-        
-        template<typename R>
-        BehaviorSubject<T>* pipe(R);
-};
-
-
-/**
- * @brief Representation of a subscribed procedure.
- * 
- * @tparam T Type of the data supposed to be passed to its Subject
- */
-template<typename T>
-class Subscription
-{
-    private:
-        int mID;
-        Subject<T>* mParent;
-
-        Procedure<T> mAction;
-
-    public:
-        Subscription(int, Subject<T>*, Procedure<T>);
-        ~Subscription();
-
-        void call(T);
-        int unsubscribe();
-        int id();
 };
 
 template<typename T>
@@ -329,55 +268,6 @@ Subject<T>* Subject<T>::clone(void)
 
 
 /**
- * @brief /!\ Made to be used inside of Subject->pipe() /!\
- * 
- * Transforms data using the given function
- * 
- * @tparam T Data type of input/output
- * @param func The transformation function 
- */
-template<typename T, typename R>
-Procedure<T*> takeUntil(R cond)
-{
-    return [=](T* val){
-        *val = func(*val);
-    };
-}
-
-/**
- * @brief /!\ Made to be used inside of Subject->pipe() /!\
- * 
- * Transforms data using the given function
- * 
- * @tparam T Data type of input/output
- * @param func The transformation function 
- */
-template<typename T>
-Procedure<T*> map(Operator<T, T> func)
-{
-    return [=](T* val){
-        *val = func(*val);
-    };
-}
-
-/**
- * @brief /!\ Made to be used inside of Subject->pipe() /!\
- * 
- * Filter data using the given expression
- * 
- * @tparam T Data type of input
- * @param exp The condition as expression
- */
-template<typename T>
-Operator<T*, T*> filter(Operator<T, T> exp)
-{
-    return [=](T* val){
-        if(!exp(*val)) return (T*)NULL;
-        return val;
-    };
-}
-
-/**
  * @brief Transform data using a procedure that modifies value of a given pointer 
  * 
  * @tparam T 
@@ -420,118 +310,5 @@ Subject<T>* Subject<T>::pipe(Procedure<T*> func)
 
     return clone;
 }
-
-
-template<typename T>
-BehaviorSubject<T>::BehaviorSubject(T val)
-{
-    mValue = val;
-}
-
-/**
- * @brief Compatibility for Subject::pipe to BehaviorSubjects
- */
-template<typename T>
-template<typename R>
-BehaviorSubject<T>* BehaviorSubject<T>::pipe(R func)
-{
-    auto clone = static_cast<BehaviorSubject*>(Subject<T>::pipe(func));
-    clone->mValue = this->mValue;
-
-    return clone;
-}
-
-/**
- * @brief Calls then subscribes a procedure to a BehaviorSubject    
- * 
- * @tparam T Type of the BehaviorSubject
- * @param func Procedure to call then subscribe
- * @return the address of the subscription (NULL if an error occured)
- */
-template<typename T>
-Subscription<T>* BehaviorSubject<T>::subscribe(Procedure<T> func)
-{
-    func(mValue);
-    return Subject<T>::subscribe(func);
-}
-
-/**
- * @brief Sends the current value of the BehaviorSubject
- * 
- * @tparam T Type of the BehaviorSubject
- * @return Value of the BehaviorSubject
- */
-template<typename T>
-T BehaviorSubject<T>::getValue(void)
-{
-    return mValue;
-}
-
-
-/**
- * @brief Save then emit a new value to the BehaviorSubject
- * 
- * @tparam T Type of the BehaviorSubject
- * @param val Value to be emitted
- */
-template<typename T>
-void BehaviorSubject<T>::next(T val)
-{
-    mValue = val;
-    Subject<T>::next(val);
-}
-
-
-
-template<typename T>
-Subscription<T>::Subscription(int ID, Subject<T>* parent, Procedure<T> action)
-{
-    mID = ID;
-    mParent = parent;
-    mAction = action;
-}
-
-template<typename T>
-Subscription<T>::~Subscription()
-{
-}
-
-/**
- * @brief Delete this subscription from its subject
- * 
- * @tparam T Type of its Subject
- * @return 1 if it worked - 0 if the subscription list coulnd't be modified - -1 if the subscription isn't listed
- */
-template<typename T>
-int Subscription<T>::unsubscribe()
-{
-    return mParent->unsubscribe(mID);
-}
-
-
-/**
- * @brief Calls the procedure associated to the Subscription
- * 
- * @tparam T Type of its Subject
- * @param val Parameter to give to the procedure
- */
-template<typename T>
-void Subscription<T>::call(T val)
-{
-    mAction(val);
-}
-
-/**
- * @brief Sends ID of the subscription
- * 
- * @tparam T Type of its Subject
- * @return int ID 
- */
-template<typename T>
-int Subscription<T>::id()
-{
-    return mID;
-}
-
 
 #endif
