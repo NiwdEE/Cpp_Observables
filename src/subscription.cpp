@@ -2,6 +2,7 @@
 #define SUBSCRIPTION_HEADER_D9DA62
 
 #include "common.hpp"
+#include "observable.cpp"
 #include "subject.cpp"
 
 
@@ -17,12 +18,12 @@ class Subscription
 {
     private:
         int mID;
-        Subject<T>* mParent;
+        Subscribable<T>* mParent;
 
         Procedure<T> mAction;
 
     public:
-        Subscription(int, Subject<T>*, Procedure<T>);
+        Subscription(int, Subscribable<T>*, Procedure<T>);
         ~Subscription();
 
         void call(T);
@@ -31,7 +32,7 @@ class Subscription
 };
 
 template<typename T>
-Subscription<T>::Subscription(int ID, Subject<T>* parent, Procedure<T> action)
+Subscription<T>::Subscription(int ID, Subscribable<T>* parent, Procedure<T> action)
 {
     mID = ID;
     mParent = parent;
