@@ -9,56 +9,78 @@
  * 
  * @tparam T Type of the data supposed to be passed to the BehaviorSubject
  */
-template<typename T>
-class BehaviorSubject : public Subject<T>
+template<class Derived, typename T>
+class CRTPI_BehaviorSubject : public CRTPI_Subject<Derived, T>
 {
-    private:
+    protected:
         T mValue;
+                
+
+        CRTPI_BehaviorSubject<Derived, T>* clone();
+
+        
 
     public:
-        BehaviorSubject(T);
 
-        Subscription<T>* subscribe(Procedure<T>);
+        // Subscription<T>* subscribe(Procedure<T>);
         T getValue(void);
-        void next(T);
-        
-        template<typename R>
-        BehaviorSubject<T>* pipe(R);
+        // void next(T);
+
 };
+
+
+
+template<typename T>
+class BehaviorSubject: public CRTPI_BehaviorSubject<BehaviorSubject<T>, T>{
+    public:
+        BehaviorSubject();
+        BehaviorSubject(T);
+};
+
+
+template<typename T>
+BehaviorSubject<T>::BehaviorSubject(){
+    this->mSubs = NULL;
+    this->mNextSubID = 1;
+    this->mSubsAmt = 0;
+
+    this->mClones = NULL;
+    this->mClonesAmt = 0;
+
+    this->mPiped = false;
+    this->mPipe = [](T* a){
+        return a;
+    };
+}
 
 
 template<typename T>
 BehaviorSubject<T>::BehaviorSubject(T val)
 {
-    mValue = val;
+    this->mValue = val;
 }
 
-/**
- * @brief Compatibility for Subject::pipe to BehaviorSubjects
- */
-template<typename T>
-template<typename R>
-BehaviorSubject<T>* BehaviorSubject<T>::pipe(R func)
+template<class Derived, typename T>
+CRTPI_BehaviorSubject<Derived, T>* CRTPI_BehaviorSubject<Derived, T>::clone()
 {
-    auto clone = static_cast<BehaviorSubject*>(Subject<T>::pipe(func));
+    CRTPI_BehaviorSubject<Derived, T>* clone = CRTPI_Observable<CRTPI_BehaviorSubject<Derived, T>, T>::clone();
     clone->mValue = this->mValue;
-
     return clone;
 }
 
-/**
- * @brief Calls then subscribes a procedure to a BehaviorSubject    
- * 
- * @tparam T Type of the BehaviorSubject
- * @param func Procedure to call then subscribe
- * @return the address of the subscription (NULL if an error occured)
- */
-template<typename T>
-Subscription<T>* BehaviorSubject<T>::subscribe(Procedure<T> func)
-{
-    func(mValue);
-    return Subject<T>::subscribe(func);
-}
+// /**
+//  * @brief Calls then subscribes a procedure to a BehaviorSubject    
+//  * 
+//  * @tparam T Type of the BehaviorSubject
+//  * @param func Procedure to call then subscribe
+//  * @return the address of the subscription (NULL if an error occured)
+//  */
+// template<class Derived, typename T>
+// Subscription<T>* CRTPI_BehaviorSubject<Derived, T>::subscribe(Procedure<T> func)
+// {
+//     func(this->mValue);
+//     return Subject<T>::subscribe(func);
+// }
 
 /**
  * @brief Sends the current value of the BehaviorSubject
@@ -66,24 +88,24 @@ Subscription<T>* BehaviorSubject<T>::subscribe(Procedure<T> func)
  * @tparam T Type of the BehaviorSubject
  * @return Value of the BehaviorSubject
  */
-template<typename T>
-T BehaviorSubject<T>::getValue(void)
+template<class Derived, typename T>
+T CRTPI_BehaviorSubject<Derived, T>::getValue(void)
 {
-    return mValue;
+    return this->mValue;
 }
 
 
-/**
- * @brief Save then emit a new value to the BehaviorSubject
- * 
- * @tparam T Type of the BehaviorSubject
- * @param val Value to be emitted
- */
-template<typename T>
-void BehaviorSubject<T>::next(T val)
-{
-    mValue = val;
-    Subject<T>::next(val);
-}
+// /**
+//  * @brief Save then emit a new value to the BehaviorSubject
+//  * 
+//  * @tparam T Type of the BehaviorSubject
+//  * @param val Value to be emitted
+//  */
+// template<class Derived, typename T>
+// void BehaviorSubject<T>::next(T val)
+// {
+//     mValue = val;
+//     Subject<T>::next(val);
+// }
 
 #endif

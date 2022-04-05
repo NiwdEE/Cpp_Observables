@@ -14,20 +14,33 @@ using Operator = std::function<T(R)>;
 
 //Class template prototype for circular dependecies between Subject and Subscription
 
-template<typename T>
-class Subscribable;
+// template<typename T>
+// class Subscribable;
+
+template<class Derived, typename T>
+class CRTPI_Observable;
 
 template<typename T>
 class Observable;
 
+
+
+template<class Derived, typename T>
+class CRTPI_Subject;
+
 template<typename T>
 class Subject;
+
+
+
+template<class Derived, typename T>
+class CRTPI_BehaviorSubject;
 
 template<typename T>
 class BehaviorSubject;
 
 
-template<typename T>
+template<class D, typename T>
 class Subscription;
 
 /**

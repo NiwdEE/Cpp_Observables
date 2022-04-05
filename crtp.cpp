@@ -11,13 +11,6 @@ class CRTPI_A
 
     public:
 
-        CRTPI_A(){};
-
-        CRTPI_A(T z){
-            x = z;
-        }
-
-
         T getX(){
             return x;
         }
@@ -57,7 +50,7 @@ class A: public CRTPI_A<A<T>, T>
         A(){};
 
         A(T z){
-            CRTPI_A<A<T>, T>::x = z;
+            this->x = z;
         }
 
         void foo(){
@@ -75,15 +68,14 @@ class B: public CRTPI_B<B<T>, T>
         B(){};
 
         B(T z){
-            CRTPI_B<B<T>, T>::x = z;
+            this->x = z;
         }
-
-
 
         void foo(){
             std::cout << "call from B" << std::endl;
         }
 
+        //Not in CRTP interface so won't be inherited by C
         void UwU(){
             std::cout << "I'm exclusive to B" << std::endl;
         }
@@ -93,14 +85,12 @@ class B: public CRTPI_B<B<T>, T>
 template<typename T>
 class C: public CRTPI_C<C<T>, T>
 {
-
-    
     public:
 
         C(){};
 
         C(T z){
-            CRTPI_C<C<T>, T>::x = z;
+            this->x = z;
         };
 
         void foo(){
@@ -111,13 +101,15 @@ class C: public CRTPI_C<C<T>, T>
 
 int main(int argc, char const *argv[])
 {
-    auto tA = new A<char>('c');
-    auto tB = new B<int>(25);
-    auto tC = new C<float>(17.1);
+    auto tA = new A<char>('A');
+    auto tB = new B<int>(2);
+    auto tC = new C<float>(420.69);
 
 
     tA->foo();
     tA->clone()->foo();
+
+    printf("\n");
 
     tB->foo();
     tB->iwd();
@@ -126,11 +118,13 @@ int main(int argc, char const *argv[])
 
     tB->UwU();
 
+    printf("\n");
+
     tC->foo();
     tC->iwd();
     // tC->UwU(); //Won't work but that's planned
 
-    std::cout << tA->getX() << ":" << tB->getX() <<":" << tC->getX() << std::endl;
+    std::cout << "\n" << tA->getX() << ":" << tB->getX() <<":" << tC->getX() << std::endl;
 
 
     return 0;

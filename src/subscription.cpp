@@ -3,8 +3,6 @@
 
 #include "common.hpp"
 #include "observable.cpp"
-#include "subject.cpp"
-
 
 
 
@@ -13,17 +11,18 @@
  * 
  * @tparam T Type of the data supposed to be passed to its Subject
  */
-template<typename T>
+template<class D, typename T>
 class Subscription
 {
     private:
         int mID;
-        Observable<T>* mParent;
+        CRTPI_Observable<D,T>* mParent;
 
         Procedure<T> mAction;
 
     public:
-        Subscription(int, Observable<T>*, Procedure<T>);
+
+        Subscription(int, CRTPI_Observable<D,T>*, Procedure<T>);
         ~Subscription();
 
         void call(T);
@@ -31,16 +30,16 @@ class Subscription
         int id();
 };
 
-template<typename T>
-Subscription<T>::Subscription(int ID, Observable<T>* parent, Procedure<T> action)
+template<typename D, typename T>
+Subscription<D, T>::Subscription(int ID, CRTPI_Observable<D,T>* parent, Procedure<T> action)
 {
     mID = ID;
     mParent = parent;
     mAction = action;
 }
 
-template<typename T>
-Subscription<T>::~Subscription()
+template<typename D, typename T>
+Subscription<D, T>::~Subscription()
 {
 }
 
@@ -50,8 +49,8 @@ Subscription<T>::~Subscription()
  * @tparam T Type of its Subject
  * @return 1 if it worked - 0 if the subscription list coulnd't be modified - -1 if the subscription isn't listed
  */
-template<typename T>
-int Subscription<T>::unsubscribe()
+template<typename D, typename T>
+int Subscription<D, T>::unsubscribe()
 {
     return mParent->unsubscribe(mID);
 }
@@ -63,8 +62,8 @@ int Subscription<T>::unsubscribe()
  * @tparam T Type of its Subject
  * @param val Parameter to give to the procedure
  */
-template<typename T>
-void Subscription<T>::call(T val)
+template<typename D, typename T>
+void Subscription<D, T>::call(T val)
 {
     mAction(val);
 }
@@ -75,8 +74,8 @@ void Subscription<T>::call(T val)
  * @tparam T Type of its Subject
  * @return int ID 
  */
-template<typename T>
-int Subscription<T>::id()
+template<typename D, typename T>
+int Subscription<D, T>::id()
 {
     return mID;
 }

@@ -5,69 +5,62 @@
 #include "subscription.cpp"
 
 
-/** /
-
-template<typename T>
-class Subscribable
-{
-    public:
-       Subscription<T>* subscribe(Procedure<T>);
-       int unsubscribe(int); 
-};
-/**/
-
 /**
  * @brief Collection that will emit its value to subscribed procedures instead of storing it.
  * 
  * @tparam T Type of the data supposed to be passed to the Subject
  */
-template<typename T>
-class Observable
-// :public Subscribable<T>
+template<class Derived, typename T>
+class CRTPI_Observable
 {
     protected:
-        Subscription<T>** mSubs;
+        Subscription<Derived, T>** mSubs;
         int mSubsAmt;
 
         int mNextSubID;
 
 
-        Observable** mClones;
+        Derived** mClones;
         int mClonesAmt;
 
         bool mPiped;
         Operator<T*, T*> mPipe;
 
-        virtual Observable* clone();
+        Derived* clone();
 
+    public:
+
+        Subscription<Derived, T>* subscribe(Procedure<T>);
+        int unsubscribe(int);
+        void unsubscribeAll();
+
+        Derived* pipe(Operator<T*, T*>);
+        Derived* pipe(Procedure<T*>);
+
+};
+
+template<typename T>
+class Observable: public CRTPI_Observable<Observable<T>, T>
+{
     public:
         Observable();
         Observable(const Observable<T>&);
         ~Observable();
-
-        Subscription<T>* subscribe(Procedure<T>);
-        int unsubscribe(int);
-        void unsubscribeAll();
-
-        virtual Observable* pipe(Operator<T*, T*>);
-        virtual Observable* pipe(Procedure<T*>);
-
 };
-
 
 
 template<typename T>
 Observable<T>::Observable()
 {
-    mSubs = NULL;
-    mNextSubID = 1;
-    mSubsAmt = 0;
+    this->mSubs = NULL;
+    this->mNextSubID = 1;
+    this->mSubsAmt = 0;
 
-    mClones = NULL;
-    mClonesAmt = 0;
+    this->mClones = NULL;
+    this->mClonesAmt = 0;
 
-    mPiped = false;
-    mPipe = [](T* a){
+    this->mPiped = false;
+    this->mPipe = [](T* a){
         return a;
     };
 }
@@ -75,15 +68,15 @@ Observable<T>::Observable()
 template<typename T>
 Observable<T>::Observable(const Observable<T>& newOne)
 {
-    mSubs = newOne.mSubs;
-    mNextSubID = newOne.mNextSubID;
-    mSubsAmt = newOne.mSubsAmt;
+    this->mSubs = newOne.mSubs;
+    this->mNextSubID = newOne.mNextSubID;
+    this->mSubsAmt = newOne.mSubsAmt;
 
-    mClones = newOne.mClones;
-    mClonesAmt = newOne.mClonesAmt;
+    this->mClones = newOne.mClones;
+    this->mClonesAmt = newOne.mClonesAmt;
 
-    mPiped = newOne.mPiped;
-    mPipe = newOne.mPipe;
+    this->mPiped = newOne.mPiped;
+    this->mPipe = newOne.mPipe;
 }
 
 
@@ -91,17 +84,17 @@ template<typename T>
 Observable<T>::~Observable()
 {
     int i;
-    for(i = 0; i < mSubsAmt; i++){
-        delete mSubs[i];
+    for(i = 0; i < this->mSubsAmt; i++){
+        delete this->mSubs[i];
     }
 
-    free(mSubs);
+    free(this->mSubs);
 
-    for(i = 0; i < mClonesAmt; i++){
-        delete mClones[i];
+    for(i = 0; i < this->mClonesAmt; i++){
+        delete this->mClones[i];
     }
 
-    free(mClones);
+    free(this->mClones);
 }
 
 /**
@@ -111,12 +104,12 @@ Observable<T>::~Observable()
  * @param proc Procedure to subscribe
  * @return the address of the subscription (NULL if an error occured)
  */
-template<typename T>
-Subscription<T>* Observable<T>::subscribe(Procedure<T> proc)
+template<class Derived, typename T>
+Subscription<Derived, T>* CRTPI_Observable<Derived, T>::subscribe(Procedure<T> proc)
 {
     int SubID = mNextSubID++;
     
-    Subscription<T>** newSubs = (Subscription<T>**)malloc(sizeof(Subscription<T>*) * (mSubsAmt+1));
+    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)malloc(sizeof(Subscription<Derived, T>*) * (mSubsAmt+1));
 
     if(!newSubs){
         return NULL;
@@ -128,7 +121,7 @@ Subscription<T>* Observable<T>::subscribe(Procedure<T> proc)
 
     free(mSubs);
 
-    auto Sub = new Subscription<T>(SubID, this, proc);
+    auto Sub = new Subscription<Derived, T>(SubID, this, proc);
     
     newSubs[mSubsAmt] = Sub;
 
@@ -146,8 +139,8 @@ Subscription<T>* Observable<T>::subscribe(Procedure<T> proc)
  * @param id The id of the subscription
  * @return -1 if the id doesn't exist - 0 if the subscription list coulnd't be modified - 1 if it worked
  */
-template<typename T>
-int Observable<T>::unsubscribe(int id)
+template<class Derived, typename T>
+int CRTPI_Observable<Derived, T>::unsubscribe(int id)
 {
     int i;
 
@@ -162,7 +155,7 @@ int Observable<T>::unsubscribe(int id)
     if(index == -1) return -1;
 
 
-    Subscription<T>** newSubs = (Subscription<T>**)malloc(sizeof(Subscription<T>*) * (mSubsAmt-1));
+    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)malloc(sizeof(Subscription<Derived, T>*) * (mSubsAmt-1));
 
     if(!newSubs) return 0;
 
@@ -187,8 +180,8 @@ int Observable<T>::unsubscribe(int id)
 /**
  * @brief Unsubscribes every subscriptions
  */
-template<typename T>
-void Observable<T>::unsubscribeAll()
+template<class Derived, typename T>
+void CRTPI_Observable<Derived, T>::unsubscribeAll()
 {
     for(int i = 0; i < mSubsAmt; i++){
         delete mSubs[i];
@@ -205,12 +198,12 @@ void Observable<T>::unsubscribeAll()
  * @tparam T Data type of Subject
  * @return Subject<T>* Address of the clone
  */
-template<typename T>
-Observable<T>* Observable<T>::clone(void)
+template<class Derived, typename T>
+Derived* CRTPI_Observable<Derived, T>::clone(void)
 {
-    auto clone = new Observable();
+    auto clone = new Derived();
 
-    Observable** newClones = (Observable**)malloc(sizeof(Observable*) * (mClonesAmt+1));
+    Derived** newClones = (Derived**)malloc(sizeof(Derived*) * (mClonesAmt+1));
 
     if(!newClones){
         return NULL;
@@ -237,8 +230,8 @@ Observable<T>* Observable<T>::clone(void)
  * @param func The function (better use map() than lambdas)
  * @return Subject<T>* Address of the piped Subject
  */
-template<typename T>
-Observable<T>* Observable<T>::pipe(Operator<T*, T*> func)
+template<class Derived, typename T>
+Derived* CRTPI_Observable<Derived, T>::pipe(Operator<T*, T*> func)
 {    
     auto clone = this->clone();
 
@@ -259,8 +252,8 @@ Observable<T>* Observable<T>::pipe(Operator<T*, T*> func)
  * @param func The function (better use map() than lambdas)
  * @return Subject<T>* Address of the piped Subject
  */
-template<typename T>
-Observable<T>* Observable<T>::pipe(Procedure<T*> func)
+template<class Derived, typename T>
+Derived* CRTPI_Observable<Derived, T>::pipe(Procedure<T*> func)
 {
     auto clone = this->clone();
 

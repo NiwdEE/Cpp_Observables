@@ -9,15 +9,11 @@
  * 
  * @tparam T Type of the data supposed to be passed to the Subject
  */
-template<typename T>
-class Subject : public Observable<T>
+template<class Derived, typename T>
+class CRTPI_Subject : public CRTPI_Observable<Derived, T>
 {
 
     public:
-        Subject();
-        Subject(const Subject<T>&);
-        ~Subject();
-
         void next(T);
         void error(T);   // **
         void complete(); // **
@@ -25,6 +21,16 @@ class Subject : public Observable<T>
         // Subject<T>* pipe(Operator<T*, T*>);
         // Subject<T>* pipe(Procedure<T*>);
 
+};
+
+template<typename T>
+class Subject: public CRTPI_Subject<Subject<T>, T>
+{
+    public:
+    
+        Subject();
+        Subject(const Subject<T>&);
+        ~Subject();
 };
 
 template<typename T>
@@ -82,8 +88,8 @@ Subject<T>::~Subject()
  * @tparam T Type of the Subject
  * @param val Value to be emitted
  */
-template<typename T>
-void Subject<T>::next(T val)
+template<class Derived, typename T>
+void CRTPI_Subject<Derived, T>::next(T val)
 {   
     int i;
 
@@ -119,8 +125,8 @@ void Subject<T>::next(T val)
  * @param sub Subject (Doesn't work with pointers)
  * @param val Value to pass
  */
-template<typename T>
-Subject<T>& operator<<(Subject<T>& sub, const T& val)
+template<class Derived, typename T>
+CRTPI_Subject<Derived, T>& operator<<(CRTPI_Subject<Derived, T>& sub, const T& val)
 {
     sub.next(val);
     return sub;
