@@ -30,6 +30,8 @@ class CRTPI_Observable
 
     public:
 
+        CRTPI_Observable();
+
         Subscription<Derived, T>* subscribe(Procedure<T>);
         int unsubscribe(int);
         void unsubscribeAll();
@@ -48,10 +50,8 @@ class Observable: public CRTPI_Observable<Observable<T>, T>
         ~Observable();
 };
 
-
-template<typename T>
-Observable<T>::Observable()
-{
+template<class Derived, typename T>
+CRTPI_Observable<Derived, T>::CRTPI_Observable(){
     this->mSubs = NULL;
     this->mNextSubID = 1;
     this->mSubsAmt = 0;
@@ -63,6 +63,13 @@ Observable<T>::Observable()
     this->mPipe = [](T* a){
         return a;
     };
+}
+
+
+template<typename T>
+Observable<T>::Observable(): CRTPI_Observable<Observable<T>, T>()
+{
+
 }
 
 template<typename T>
@@ -115,13 +122,13 @@ Subscription<Derived, T>* CRTPI_Observable<Derived, T>::subscribe(Procedure<T> p
         return NULL;
     }
 
-    for(int i = 0; i < mSubsAmt; i++){
-        newSubs[i] = mSubs[i];
+    for(int i = 0; i < this->mSubsAmt; i++){
+        newSubs[i] = this->mSubs[i];
     }
 
     free(mSubs);
 
-    auto Sub = new Subscription<Derived, T>(SubID, this, proc);
+    auto Sub = new Subscription<Derived, T>(SubID, static_cast<Derived*>(this), proc);
     
     newSubs[mSubsAmt] = Sub;
 

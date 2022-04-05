@@ -22,9 +22,9 @@ class CRTPI_BehaviorSubject : public CRTPI_Subject<Derived, T>
 
     public:
 
-        // Subscription<T>* subscribe(Procedure<T>);
+        Subscription<Derived, T>* subscribe(Procedure<T>);
         T getValue(void);
-        // void next(T);
+        void next(T);
 
 };
 
@@ -68,19 +68,19 @@ CRTPI_BehaviorSubject<Derived, T>* CRTPI_BehaviorSubject<Derived, T>::clone()
     return clone;
 }
 
-// /**
-//  * @brief Calls then subscribes a procedure to a BehaviorSubject    
-//  * 
-//  * @tparam T Type of the BehaviorSubject
-//  * @param func Procedure to call then subscribe
-//  * @return the address of the subscription (NULL if an error occured)
-//  */
-// template<class Derived, typename T>
-// Subscription<T>* CRTPI_BehaviorSubject<Derived, T>::subscribe(Procedure<T> func)
-// {
-//     func(this->mValue);
-//     return Subject<T>::subscribe(func);
-// }
+/**
+ * @brief Calls then subscribes a procedure to a BehaviorSubject    
+ * 
+ * @tparam T Type of the BehaviorSubject
+ * @param func Procedure to call then subscribe
+ * @return the address of the subscription (NULL if an error occured)
+ */
+template<class Derived, typename T>
+Subscription<Derived, T>* CRTPI_BehaviorSubject<Derived, T>::subscribe(Procedure<T> func)
+{
+    func(this->mValue);
+    return CRTPI_Observable<Derived, T>::subscribe(func);
+}
 
 /**
  * @brief Sends the current value of the BehaviorSubject
@@ -95,17 +95,17 @@ T CRTPI_BehaviorSubject<Derived, T>::getValue(void)
 }
 
 
-// /**
-//  * @brief Save then emit a new value to the BehaviorSubject
-//  * 
-//  * @tparam T Type of the BehaviorSubject
-//  * @param val Value to be emitted
-//  */
-// template<class Derived, typename T>
-// void BehaviorSubject<T>::next(T val)
-// {
-//     mValue = val;
-//     Subject<T>::next(val);
-// }
+/**
+ * @brief Save then emit a new value to the BehaviorSubject
+ * 
+ * @tparam T Type of the BehaviorSubject
+ * @param val Value to be emitted
+ */
+template<class Derived, typename T>
+void CRTPI_BehaviorSubject<Derived, T>::next(T val)
+{
+    this->mValue = val;
+    CRTPI_Subject<Derived, T>::next(val);
+}
 
 #endif
