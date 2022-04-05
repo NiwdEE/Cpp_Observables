@@ -18,12 +18,12 @@ class Subscription
 {
     private:
         int mID;
-        Subscribable<T>* mParent;
+        Observable<T>* mParent;
 
         Procedure<T> mAction;
 
     public:
-        Subscription(int, Subscribable<T>*, Procedure<T>);
+        Subscription(int, Observable<T>*, Procedure<T>);
         ~Subscription();
 
         void call(T);
@@ -32,7 +32,7 @@ class Subscription
 };
 
 template<typename T>
-Subscription<T>::Subscription(int ID, Subscribable<T>* parent, Procedure<T> action)
+Subscription<T>::Subscription(int ID, Observable<T>* parent, Procedure<T> action)
 {
     mID = ID;
     mParent = parent;

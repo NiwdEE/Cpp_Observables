@@ -5,11 +5,8 @@
 #include "subscription.cpp"
 
 
-/**
- * @brief 
- * 
- * @tparam T 
- */
+/** /
+
 template<typename T>
 class Subscribable
 {
@@ -17,7 +14,7 @@ class Subscribable
        Subscription<T>* subscribe(Procedure<T>);
        int unsubscribe(int); 
 };
-
+/**/
 
 /**
  * @brief Collection that will emit its value to subscribed procedures instead of storing it.
@@ -25,7 +22,8 @@ class Subscribable
  * @tparam T Type of the data supposed to be passed to the Subject
  */
 template<typename T>
-class Observable : public Subscribable<T>
+class Observable
+// :public Subscribable<T>
 {
     protected:
         Subscription<T>** mSubs;
