@@ -12,11 +12,6 @@ using Procedure = std::function<void(T)>;
 template<typename T, typename R>
 using Operator = std::function<T(R)>;
 
-//Class template prototype for circular dependecies between Subject and Subscription
-
-// template<typename T>
-// class Subscribable;
-
 template<class Derived, typename T>
 class CRTPI_Observable;
 

@@ -1,4 +1,4 @@
-LIB=common subject behaviorSubject subscription
+LIB=observable subject behaviorSubject subscription
 LIBSRC=$(addprefix src/,$(addsuffix .cpp, $(LIB)))
 LIBOBJ=$(LIBSRC:.cpp=.o)
 
@@ -17,13 +17,9 @@ endif
 prog: bin/prog
 
 bin/prog: test.cpp
-	g++ test.cpp -o bin/prog -L./lib
+	g++ test.cpp -o bin/prog
 
 
-lib: lib/libobservables.a
-
-lib/libobservables.a: $(LIBOBJ)
-	ar rcs lib/libobservables.a $(LIBOBJ)
 
 %.o: %.cpp
 	gcc -c $< -o $@
