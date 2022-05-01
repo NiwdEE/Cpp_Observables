@@ -79,7 +79,7 @@ template<class Derived, typename T>
 Subscription<Derived, T>* CRTPI_BehaviorSubject<Derived, T>::subscribe(Procedure<T> func)
 {
     func(this->mValue);
-    return CRTPI_Observable<Derived, T>::subscribe(func);
+    return CRTPI_Subscribable<Derived, T>::subscribe(func);
 }
 
 /**
