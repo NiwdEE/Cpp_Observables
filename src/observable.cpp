@@ -4,14 +4,14 @@
 #include "common.hpp"
 #include "subscription.cpp"
 
-
 /**
- * @brief Collection that will emit its value to subscribed procedures instead of storing it.
+ * @brief Abstract class to generalize function subscription, can be used to create objects like EventEmitters or Listeners
  * 
- * @tparam T Type of the data supposed to be passed to the Subject
+ * @tparam Derived CRTP parameter
+ * @tparam T type of the data supposed to be passed to subscriptions
  */
 template<class Derived, typename T>
-class CRTPI_Observable
+class CRTPI_Subscribable
 {
     protected:
         Subscription<Derived, T>** mSubs;
@@ -19,6 +19,126 @@ class CRTPI_Observable
 
         int mNextSubID;
 
+    public:
+
+        Subscription<Derived, T>* subscribe(Procedure<T>);
+        int unsubscribe(int);
+        void unsubscribeAll();
+};
+
+/*
+    /!\ /!\ /!\
+    I won't define constructor, destructor, or pure class (not the CRPT interface)
+    because this class is abstract and isn't supposed to have instances
+    /!\ /!\ /!\
+*/
+
+
+/**
+ * @brief Subscribes a procedure to the Subject.
+ * 
+ * @tparam T Type of the Subject
+ * @param proc Procedure to subscribe
+ * @return the address of the subscription (NULL if an error occured)
+ */
+template<class Derived, typename T>
+Subscription<Derived, T>* CRTPI_Subscribable<Derived, T>::subscribe(Procedure<T> proc)
+{
+    int SubID = mNextSubID++;
+    
+    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)malloc(sizeof(Subscription<Derived, T>*) * (mSubsAmt+1));
+
+    if(!newSubs){
+        return NULL;
+    }
+
+    for(int i = 0; i < this->mSubsAmt; i++){
+        newSubs[i] = this->mSubs[i];
+    }
+
+    free(mSubs);
+
+    auto Sub = new Subscription<Derived, T>(SubID, static_cast<Derived*>(this), proc);
+    
+    newSubs[mSubsAmt] = Sub;
+
+    mSubs = newSubs;
+    mSubsAmt++;
+
+    return Sub;
+}
+
+/**
+ * @brief Delete a single subscription from the subject (You should use Subscription->unsubscribe() instead).
+ * 
+ * @tparam T Type of the Subject
+ * @param id The id of the subscription
+ * @return -1 if the id doesn't exist - 0 if the subscription list coulnd't be modified - 1 if it worked
+ */
+template<class Derived, typename T>
+int CRTPI_Subscribable<Derived, T>::unsubscribe(int id)
+{
+    int i;
+
+    int index = -1;
+    for(i = 0; i < mSubsAmt; i++){
+        if(mSubs[i]->id() == id){
+            index = i;
+            break;
+        }
+    }
+
+    if(index == -1) return -1;
+
+
+    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)malloc(sizeof(Subscription<Derived, T>*) * (mSubsAmt-1));
+
+    if(!newSubs) return 0;
+
+    for(i = 0; i < index; i++){
+        newSubs[i] = mSubs[i];
+    }
+
+    delete mSubs[index];
+
+    for(i = index+1; i < mSubsAmt; i++){
+        newSubs[i-1] = mSubs[i];
+    }
+
+    free(mSubs);
+
+    mSubs = newSubs;
+    mSubsAmt--;
+
+    return 1;
+}
+
+/**
+ * @brief Unsubscribes every subscriptions
+ */
+template<class Derived, typename T>
+void CRTPI_Subscribable<Derived, T>::unsubscribeAll()
+{
+    for(int i = 0; i < mSubsAmt; i++){
+        delete mSubs[i];
+    }
+
+    free(mSubs);
+    mSubsAmt = 0;
+    mNextSubID = 1;
+}
+
+
+/**
+ * @brief Collection that will emit its value to subscribed procedures instead of storing it.
+ * 
+ * @tparam Derived CRTP parameter
+ * @tparam T Type of the data supposed to be passed to the Subject
+ */
+template<class Derived, typename T>
+class CRTPI_Observable: public CRTPI_Subscribable<Derived, T>
+{
+    protected:
 
         Derived** mClones;
         int mClonesAmt;
@@ -31,10 +151,6 @@ class CRTPI_Observable
     public:
 
         CRTPI_Observable();
-
-        Subscription<Derived, T>* subscribe(Procedure<T>);
-        int unsubscribe(int);
-        void unsubscribeAll();
 
         Derived* pipe(Operator<T*, T*>);
         Derived* pipe(Procedure<T*>);
@@ -102,101 +218,6 @@ Observable<T>::~Observable()
     }
 
     free(this->mClones);
-}
-
-/**
- * @brief Subscribes a procedure to the Subject.
- * 
- * @tparam T Type of the Subject
- * @param proc Procedure to subscribe
- * @return the address of the subscription (NULL if an error occured)
- */
-template<class Derived, typename T>
-Subscription<Derived, T>* CRTPI_Observable<Derived, T>::subscribe(Procedure<T> proc)
-{
-    int SubID = mNextSubID++;
-    
-    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)malloc(sizeof(Subscription<Derived, T>*) * (mSubsAmt+1));
-
-    if(!newSubs){
-        return NULL;
-    }
-
-    for(int i = 0; i < this->mSubsAmt; i++){
-        newSubs[i] = this->mSubs[i];
-    }
-
-    free(mSubs);
-
-    auto Sub = new Subscription<Derived, T>(SubID, static_cast<Derived*>(this), proc);
-    
-    newSubs[mSubsAmt] = Sub;
-
-    mSubs = newSubs;
-    mSubsAmt++;
-
-    return Sub;
-}
-
-
-/**
- * @brief Delete a single subscription from the subject (You should use Subscription->unsubscribe() instead).
- * 
- * @tparam T Type of the Subject
- * @param id The id of the subscription
- * @return -1 if the id doesn't exist - 0 if the subscription list coulnd't be modified - 1 if it worked
- */
-template<class Derived, typename T>
-int CRTPI_Observable<Derived, T>::unsubscribe(int id)
-{
-    int i;
-
-    int index = -1;
-    for(i = 0; i < mSubsAmt; i++){
-        if(mSubs[i]->id() == id){
-            index = i;
-            break;
-        }
-    }
-
-    if(index == -1) return -1;
-
-
-    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)malloc(sizeof(Subscription<Derived, T>*) * (mSubsAmt-1));
-
-    if(!newSubs) return 0;
-
-    for(i = 0; i < index; i++){
-        newSubs[i] = mSubs[i];
-    }
-
-    delete mSubs[index];
-
-    for(i = index+1; i < mSubsAmt; i++){
-        newSubs[i-1] = mSubs[i];
-    }
-
-    free(mSubs);
-
-    mSubs = newSubs;
-    mSubsAmt--;
-
-    return 1;
-}
-
-/**
- * @brief Unsubscribes every subscriptions
- */
-template<class Derived, typename T>
-void CRTPI_Observable<Derived, T>::unsubscribeAll()
-{
-    for(int i = 0; i < mSubsAmt; i++){
-        delete mSubs[i];
-    }
-
-    free(mSubs);
-    mSubsAmt = 0;
-    mNextSubID = 1;
 }
 
 /**
