@@ -21,17 +21,25 @@ class CRTPI_Subscribable
 
     public:
 
+        CRTPI_Subscribable();
+        ~CRTPI_Subscribable();
+
         Subscription<Derived, T>* subscribe(Procedure<T>);
         int unsubscribe(int);
         void unsubscribeAll();
 };
 
-/*
-    /!\ /!\ /!\
-    I won't define constructor, destructor, or pure class (not the CRPT interface)
-    because this class is abstract and isn't supposed to have instances
-    /!\ /!\ /!\
-*/
+template<class Derived, typename T>
+CRTPI_Subscribable<Derived, T>::CRTPI_Subscribable(){
+    this->mSubs = NULL;
+    this->mSubsAmt = 0;
+    this->mNextSubID = 1;
+}
+
+template<class Derived, typename T>
+CRTPI_Subscribable<Derived, T>::~CRTPI_Subscribable(){
+    free(this->mSubs);
+}
 
 
 /**
@@ -45,24 +53,19 @@ template<class Derived, typename T>
 Subscription<Derived, T>* CRTPI_Subscribable<Derived, T>::subscribe(Procedure<T> proc)
 {
     int SubID = mNextSubID++;
-    
-    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)malloc(sizeof(Subscription<Derived, T>*) * (mSubsAmt+1));
+
+    Subscription<Derived, T>** newSubs = (Subscription<Derived, T>**)realloc(this->mSubs, sizeof(Subscription<Derived, T>*) * (mSubsAmt+1));
 
     if(!newSubs){
         return NULL;
     }
 
-    for(int i = 0; i < this->mSubsAmt; i++){
-        newSubs[i] = this->mSubs[i];
-    }
-
-    free(mSubs);
+    mSubs = newSubs;
 
     auto Sub = new Subscription<Derived, T>(SubID, static_cast<Derived*>(this), proc);
     
     newSubs[mSubsAmt] = Sub;
-
-    mSubs = newSubs;
+ 
     mSubsAmt++;
 
     return Sub;
