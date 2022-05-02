@@ -87,4 +87,16 @@ Operator<T*, T*> filter(Operator<T, T> exp)
     };
 }
 
+
+/**
+ * @brief used for testing only
+ */
+template<typename T>
+Procedure<T*> nullPipe()
+{
+    return [=](T* val){
+        val = val;
+    };
+}
+
 #endif

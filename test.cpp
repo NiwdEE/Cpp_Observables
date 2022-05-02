@@ -218,7 +218,7 @@ void test6(){
         std::cout << a << " is even" << std::endl;
     });
 
-    for(int i = 0; i <= 10; i++){
+    for(int i = 1; i <= 10; i++){
         *myBS << i;
     }
 

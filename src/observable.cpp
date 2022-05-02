@@ -155,8 +155,9 @@ class CRTPI_Observable: public CRTPI_Subscribable<Derived, T>
 
         CRTPI_Observable();
 
-        Derived* pipe(Operator<T*, T*>);
-        Derived* pipe(Procedure<T*>);
+        //Pipes need virtual keyword because the clone() method differs for BehaviorSubjects
+        virtual Derived* pipe(Operator<T*, T*>);
+        virtual Derived* pipe(Procedure<T*>);
 
 };
 
@@ -234,19 +235,14 @@ Derived* CRTPI_Observable<Derived, T>::clone(void)
 {
     auto clone = new Derived();
 
-    Derived** newClones = (Derived**)malloc(sizeof(Derived*) * (mClonesAmt+1));
+    Derived** newClones = (Derived**)realloc(mClones, sizeof(Derived*) * (mClonesAmt+1));
 
     if(!newClones){
         return NULL;
     }
 
-    for(int i = 0; i < mClonesAmt; i++){
-        newClones[i] = mClones[i];
-    }
-
-    free(mClones);
-    newClones[mClonesAmt] = clone;
     mClones = newClones;
+    mClones[mClonesAmt] = clone;
 
     mClonesAmt++;
 
